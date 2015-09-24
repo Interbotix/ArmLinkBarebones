@@ -24,20 +24,21 @@ Serial[] sPorts = new Serial[numSerialPorts];  //array of serial ports, one for 
 String serialPortString;
 int packetRepsonseTimeout = 5000;      //time to wait for a response from the ArbotiX Robocontroller / Arm Link Protocol
 
-  //holds the data from the last packet sent
-  int lastX;
-  int lastY;
-  int lastZ;
-  int lastWristangle;
-  int lastWristRotate;
-  int lastGripper;
-  int lastButton;
-  int lastExtended;
-  int lastDelta;
-   boolean debugConsole = true;      //change to 'false' to disable debuging messages to the console, 'true' to enable 
-   boolean debugGuiEvent = true;      //change to 'false' to disable debuging messages to the console, 'true' to enable 
-   boolean debugFile = true;      //change to 'false' to disable debuging messages to the console, 'true' to enable 
-   boolean debugFileCreated = true;    //change to 'false' to disable debuging messages to the console, 'true' to enable 
+//holds the data from the last packet sent
+int lastX;
+int lastY;
+int lastZ;
+int lastWristangle;
+int lastWristRotate;
+int lastGripper;
+int lastButton;
+int lastExtended;
+int lastDelta;
+
+boolean debugConsole = true;      //change to 'false' to disable debuging messages to the console, 'true' to enable 
+boolean debugGuiEvent = true;      //change to 'false' to disable debuging messages to the console, 'true' to enable 
+boolean debugFile = true;      //change to 'false' to disable debuging messages to the console, 'true' to enable 
+boolean debugFileCreated = true;    //change to 'false' to disable debuging messages to the console, 'true' to enable 
 
 
   
@@ -63,6 +64,7 @@ public void setup()
 {
   size(100, 100, JAVA2D);  
   
+  //print available serial ports 
   println("Available Serial Ports:");
   for(int i = 0; i< sPorts.length;i++)
   { 
@@ -72,38 +74,44 @@ public void setup()
   }
   println("Find your serial port in the list above, and put the number in place of '-1' for the variable 'armPortIndex' ");
 
+
+
   armPortIndex = 3;
 
+
+
+  //try connecting to the serial port at 38400, throw an error if there is a problem
   try
   {
     sPort =  new Serial(this, Serial.list()[armPortIndex], 38400);
   }
   catch(Exception e)
   {
-    printlnDebug("Error Opening Serial Port"+ " ");
+    printlnDebug("Error Opening Serial Port"+ Serial.list()[armPortIndex]);
     sPort = null;
-
   }
     
-      
+  //connect to arm if the serial port is open    
   if (sPort != null)
   {
     //try to communicate with arm
     if (checkArmStartup() == true)
     {       
+      //arm is now connected
        printlnDebug("Connected on port " + Serial.list()[armPortIndex]) ;
 
     }
 
-    //if arm is not found return an error
     else  
     {
-      sPort.stop();
 
+      //if arm is not found return an error
+      sPort.stop();//close serial port
       sPort = null;
       printlnDebug("No Arm Found on port " + Serial.list()[armPortIndex]) ;
       printlnDebug("Try a different Port") ;
 
+      //reprint serial ports for user
       println("Available Serial Ports:");
       for(int i = 0; i< sPorts.length;i++)
       { 
@@ -112,23 +120,18 @@ public void setup()
         println(Serial.list()[i]);
       }
       println("Find your serial port in the list above, and put the number in place of '-1' for the variable 'armPortIndex' ");
-
-
-
-
-    }
-    }
+    }//end checkArmStartup else
+  }//end sport null if
     
-    
-      currentMode = 1;//set mode data
-    
-      currentOrientation = 1;//set mode data
-//delayMs(5000);
-  changeArmMode();//change arm mode
+  currentMode = 1;//set mode data (1 -> cartesian, 2 -> cylindrical, 3->backhoe)
+  currentOrientation = 1;//set wrist orientation (1 -> Straight, 2-> 90 degrees)
+
+  changeArmMode();//change arm mode based on mode and orientation. This will 'wake' the arm up the first time it is called
   
-  getServoRegister(1, 0, 2);
+
+  getServoRegister(1, 0, 2); //get register data from servo # 1, at register 0 (model) that is 2-bytes long
   
-  setServoRegister(3,25,1,1);
+  setServoRegister(3,25,1,1);//set register data  servo # 3 at register 25(LED) that is 1 byte long, the value 1
   
 }
 
@@ -675,7 +678,7 @@ void printlnDebug(String message, int type)
 {
   if (debugConsole == true)
   {
-    if ((type == 1 & debugGuiEvent == true) || type == 0 || type == 2)
+    if ((type == 1) || type == 0 || type == 2)
     {
       println(message);
     }
@@ -684,7 +687,7 @@ void printlnDebug(String message, int type)
   if (debugFile == true)
   {
 
-    if ((type == 1 & debugGuiEvent == true) || type == 0 || type == 2)
+    if ((type == 1) || type == 0 || type == 2)
     {
 
       if (debugFileCreated == false)
